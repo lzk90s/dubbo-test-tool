@@ -20,28 +20,8 @@ import com.alibaba.dubbo.common.utils.ClassHelper;
 import com.alibaba.dubbo.common.utils.CompatibleTypeUtils;
 import com.alibaba.dubbo.common.utils.ReflectUtils;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.WeakHashMap;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -71,37 +51,6 @@ public class PojoUtils {
 
     public static Object realize(Object pojo, Class<?> type, Type genericType) {
         return realize0(pojo, type, genericType, new IdentityHashMap<Object, Object>());
-    }
-
-    private static class PojoInvocationHandler implements InvocationHandler {
-
-        private Map<Object, Object> map;
-
-        public PojoInvocationHandler(Map<Object, Object> map) {
-            this.map = map;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            if (method.getDeclaringClass() == Object.class) {
-                return method.invoke(map, args);
-            }
-            String methodName = method.getName();
-            Object value = null;
-            if (methodName.length() > 3 && methodName.startsWith("get")) {
-                value = map.get(methodName.substring(3, 4).toLowerCase() + methodName.substring(4));
-            } else if (methodName.length() > 2 && methodName.startsWith("is")) {
-                value = map.get(methodName.substring(2, 3).toLowerCase() + methodName.substring(3));
-            } else {
-                value = map.get(methodName.substring(0, 1).toLowerCase() + methodName.substring(1));
-            }
-            if (value instanceof Map<?, ?> && !Map.class.isAssignableFrom(method.getReturnType())) {
-                value = realize0((Map<String, Object>) value, method.getReturnType(), null,
-                        new IdentityHashMap<Object, Object>());
-            }
-            return value;
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -174,9 +123,9 @@ public class PojoUtils {
         }
 
         if (ReflectUtils.isPrimitives(pojo.getClass())
-            && !(type != null && type.isArray()
-            && type.getComponentType().isEnum()
-            && pojo.getClass() == String[].class)) {
+                && !(type != null && type.isArray()
+                && type.getComponentType().isEnum()
+                && pojo.getClass() == String[].class)) {
             return CompatibleTypeUtils.compatibleTypeConvert(pojo, type);
         }
 
@@ -332,7 +281,7 @@ public class PojoUtils {
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                     throw new RuntimeException("Failed to set pojo " + dest.getClass().getSimpleName() + " property " + name
-                                        + " value " + value + "(" + value.getClass() + "), cause: " + e.getMessage(), e);
+                                            + " value " + value + "(" + value.getClass() + "), cause: " + e.getMessage(), e);
                                 }
                             } else if (field != null) {
                                 value = realize0(value, field.getType(), field.getGenericType(), history);
@@ -445,6 +394,37 @@ public class PojoUtils {
         }
 
         return result;
+    }
+
+    private static class PojoInvocationHandler implements InvocationHandler {
+
+        private Map<Object, Object> map;
+
+        public PojoInvocationHandler(Map<Object, Object> map) {
+            this.map = map;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.getDeclaringClass() == Object.class) {
+                return method.invoke(map, args);
+            }
+            String methodName = method.getName();
+            Object value = null;
+            if (methodName.length() > 3 && methodName.startsWith("get")) {
+                value = map.get(methodName.substring(3, 4).toLowerCase() + methodName.substring(4));
+            } else if (methodName.length() > 2 && methodName.startsWith("is")) {
+                value = map.get(methodName.substring(2, 3).toLowerCase() + methodName.substring(3));
+            } else {
+                value = map.get(methodName.substring(0, 1).toLowerCase() + methodName.substring(1));
+            }
+            if (value instanceof Map<?, ?> && !Map.class.isAssignableFrom(method.getReturnType())) {
+                value = realize0((Map<String, Object>) value, method.getReturnType(), null,
+                        new IdentityHashMap<Object, Object>());
+            }
+            return value;
+        }
     }
 
 }

@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  */
 public class DependencyUtils {
     private static final Logger LOG = LoggerFactory.getLogger(DependencyUtils.class);
-    private static Pattern pattern = Pattern.compile("\\w+:\\w+:\\w+:\\w+:");
+    private static Pattern pattern = Pattern.compile(" \\w+:\\w+:\\w+:\\w+");
 
 
     public static List<String> parseJarDependency(String localRepository, String groupId, String artifactId, String version) throws IOException {
@@ -69,7 +69,11 @@ public class DependencyUtils {
     }
 
     public static String[] getMavenIndexer(String str) {
-        return com.alibaba.dubbo.common.utils.StringUtils.split(str, ':');
+        String[] indexer = com.alibaba.dubbo.common.utils.StringUtils.split(str, ':');
+        if (indexer.length < 3) {
+            throw new IllegalArgumentException("Invalid maven indexer " + str);
+        }
+        return indexer;
     }
 
     public static Path getMavenPath(String localRepository, String groupId, String artifactId, String version) {
@@ -93,8 +97,8 @@ public class DependencyUtils {
                 while ((line = in.readLine()) != null) {
                     String dependency = parseMavenDependencyResolveLine(line);
                     if (!StringUtils.isEmpty(dependency)) {
-                        LOG.info("Found dependency line : {}", line);
-                        String[] arr = com.alibaba.dubbo.common.utils.StringUtils.split(dependency, ':');
+                        LOG.info("Found dependency: {}", dependency);
+                        String[] arr = getMavenIndexer(dependency);
                         dependencyList.add(arr[0] + ":" + arr[1] + ":" + arr[3]);
                     }
                 }
@@ -119,6 +123,6 @@ public class DependencyUtils {
         if (!line.startsWith(key)) {
             return "";
         }
-        return line.substring(line.indexOf(" ")).trim();
+        return line.substring(line.indexOf("  ")).trim();
     }
 }

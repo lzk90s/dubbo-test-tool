@@ -7,7 +7,7 @@ import com.alibaba.dubbo.config.ReferenceConfig;
 import com.alibaba.dubbo.config.RegistryConfig;
 import com.alibaba.dubbo.rpc.service.GenericService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.nlpcn.dubbotest.Application;
+import org.nlpcn.dubbotest.config.MavenConfig;
 import org.nlpcn.dubbotest.util.ArtifactUtils;
 import org.nlpcn.dubbotest.util.DependencyUtils;
 import org.nlpcn.dubbotest.util.PojoUtils;
@@ -15,7 +15,6 @@ import org.nlpcn.dubbotest.vm.ApiVM;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.PostConstruct;
 import javax.validation.Valid;
 import java.io.File;
 import java.io.IOException;
@@ -42,30 +40,22 @@ import java.util.*;
  * @date 2021-04-06
  */
 @RestController
-public class DubboTestController {
+public class DubboInvokeController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Application.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DubboInvokeController.class);
 
     private static final String APPLICATION_NAME = "api-generic-consumer";
 
     private static final int DEFAULT_TIMEOUT = 20 * 1000;
 
-    @Value("${mavenLocalRepository:}")
-    private String mavenLocalRepository;
+    @Autowired
+    private MavenConfig mavenConfig;
 
     @Autowired
     private ObjectMapper mapper;
 
-    @PostConstruct
-    public void init() {
-        if (StringUtils.isEmpty(mavenLocalRepository)) {
-            mavenLocalRepository = System.getenv("HOME") + File.separator + ".m2" + File.separator + "repository";
-        }
 
-        LOG.info("Maven local repository is {}", mavenLocalRepository);
-    }
-
-    @PostMapping(value = "/dubbo/test", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/dubbo/invoke", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Object testDubboApi(@RequestBody @Valid ApiVM api, @RequestParam(value = "_force", defaultValue = "false") boolean force) throws Exception {
         if (!StringUtils.hasText(api.getName())) {
             api.setName(APPLICATION_NAME);
@@ -85,15 +75,15 @@ public class DubboTestController {
         // 解析所有的依赖
         List<String> allJar = new ArrayList<>();
         String[] indexer = DependencyUtils.getMavenIndexer(api.getDependency());
-        List<String> dependencyList = DependencyUtils.parseJarDependency(mavenLocalRepository, indexer[0], indexer[1], indexer[2]);
+        List<String> dependencyList = DependencyUtils.parseJarDependency(mavenConfig.getLocalRepository(), indexer[0], indexer[1], indexer[2]);
         allJar.add(api.getDependency());
         allJar.addAll(dependencyList);
 
         // 下载所有的jar包
         List<Path> allPath = new ArrayList<>();
         for (String jar : allJar) {
-            String[] arr1 = com.alibaba.dubbo.common.utils.StringUtils.split(jar, ':');
-            Path p = ArtifactUtils.download(force, mavenLocalRepository, arr1[0], arr1[1], arr1[2]);
+            indexer = DependencyUtils.getMavenIndexer(jar);
+            Path p = ArtifactUtils.download(force, mavenConfig.getLocalRepository(), indexer[0], indexer[1], indexer[2]);
             allPath.add(p);
         }
 
