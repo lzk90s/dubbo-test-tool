@@ -66,7 +66,7 @@ public class ArtifactUtils {
                 LOG.info("download[{}:{}:{}] end, delete temp directory[{}]: {}", groupId, artifactId, version, dir, ret);
             }
         } else {
-            LOG.info("path already exists: {}", path);
+            // LOG.info("path already exists: {}", path);
         }
 
         return path;

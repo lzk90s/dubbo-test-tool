@@ -97,7 +97,7 @@ public class DependencyUtils {
                 while ((line = in.readLine()) != null) {
                     String dependency = parseMavenDependencyResolveLine(line);
                     if (!StringUtils.isEmpty(dependency)) {
-                        LOG.info("Found dependency: {}", dependency);
+                        // LOG.info("Found dependency: {}", dependency);
                         String[] arr = getMavenIndexer(dependency);
                         dependencyList.add(arr[0] + ":" + arr[1] + ":" + arr[3]);
                     }
